@@ -30,27 +30,28 @@ Fuse Protocal是在/dev/fuse文件上通过read、write实现的通信协议，�
 
 例如：
 
-$ ./src/bbfs example/rootdir/ example/mountdir/
+	$ ./src/bbfs example/rootdir/ example/mountdir/
 
-$ df -h example/mountdir/
+	$ df -h example/mountdir/
 
-Filesystem      Size  Used Avail Use% Mounted on
-bbfs            991M  553M  387M  59% /home/andy/fuse-tutorial-2016-03-25/example/mountdir
+	Filesystem      Size  Used Avail Use% Mounted on
+	bbfs            991M  553M  387M  59% /home/andy/fuse-tutorial-2016-03-25/example/mountdir
 
 
 2，卸载 umount
 
-使用 fusermount -u $mnt
-umount $mnt
+	fusermount -u $mnt
+
+	umount $mnt
 
 例如：
 
-$ fusermount -u example/mountdir/
+	$ fusermount -u example/mountdir/
 
-$ df -h example/mountdir/
+	$ df -h example/mountdir/
 
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sdb1       991M  553M  387M  59% /
+	Filesystem      Size  Used Avail Use% Mounted on
+	/dev/sdb1       991M  553M  387M  59% /
 
 3，编译需要fuse库
 
@@ -66,11 +67,15 @@ fuse\_operations核心参数包括：fuse\_file\_info,
 
 5，fuse\_main传入实现的接口和自定义私有结构
 
-fuse\_context -> private\_data  void \*
+```c
+	fuse_context->private_data  // void*
+```
 
 例如：
 
-fuse\_stat = fuse\_main(argc, argv, &bb_oper, bb_data)
+```c
+	fuse_stat = fuse_main(argc, argv, &bb_oper, bb_data)
+```
 
 **bazil.org go-fuse使用基础:**
 
@@ -80,20 +85,21 @@ fuse\_stat = fuse\_main(argc, argv, &bb_oper, bb_data)
 1，fs.Serve 用于跟kerel进行FUSE protocol通信
 
 2，go-fuse方法需要实现下面3种interface:
-	
-	FS* (file system)
-	
-	Node* (file / Dir)
-	
-	Handle* (opened file / opened Dir)
-	
+
+```go
+	FS	//file system
+	Node	//file / Dir
+	Handle	//opened file / opened Dir
+```
 Go-fuse的Node和Handle接口对应了fuse的fuse_operations中的函数。Node接口对应元数据操作，Handle对应文件操作。
 
 具体Dir，File，Symlink类型等需要实现Node和Hanle这2种接口。
 
 go-fuse方法具有下面的通用形式：
 
-	OP(ctx context.Context, req \*OpRequest, resp \*OpResponse) error
+```go
+	OP(ctx context.Context, req *OpRequest, resp *OpResponse) error
+```
 
 3，多个goroutines会同时调用go-fuse方法，由go-fuse方法的具体实现负责同步
 
@@ -103,7 +109,6 @@ go-fuse方法返回的error需实现ErrorNumber，否则默认错误是EIO。
 
 go-fuse错误消息也记录到debug log中。
 
-	fuse.EINTR表示操作abort
 	
 5，权限
 
@@ -117,63 +122,68 @@ go-fuse的全部request types都嵌入了Header，方法可以使用req.Pid, req
 
 1, Mount函数
 
+```go
 	func Mount(dir string, options ...MountOption) (*Conn, error)
+```
 在指定的挂载目录dir建立一个FUSE连接Conn，Conn用于读写FUSE消息，Conn.MountError记录错误消息。
 
 成功返回后，caller必须使用Close释放资源；新挂载直到Conn.Ready关闭后，才能可见。
 
 MountOption:
-	
+
+```go
 	type MountOption mountOption
 	type mountOption func(*mountConfig) error
 	type mountConfig struct {
-		options				map[string]string
+		options			map[string]string
 		maxReadahead		uint32
-		initFlags			InitFlags
+		initFlags		InitFlags
 		osxfuseLocations	[]OSXFUSEPaths
 	}
-	
+
 	func (m *mountConfig) getOptions() string
-	
+```
+
 MountOption函数：
 
+```go
 	// 设置文件系统挂载名称
 	func FSName(name string) MountOption
-	
+
 	// 设置挂载的文件系统类型。主类型总是fuse，子类型例如ext2、ntfs
 	// Mac, freeBSD忽略这个值
 	func SubType(fstype string) MountOption
-	
+
 	// 强制内核按照file mode设置访问权限。
 	// 可以不使用。fuse默认不允许其他用户访问。
 	func DefaultPermissions() MountOption
-	
+
 	func ReadOnly() MountOption
-	
+
 	// 顺序读使的最大预读 字节数
 	func MaxReadahead(n uint32) MountOption
-	
+
 	// 允许一个handle上有多个并发读请求
 	// 否则，一个handle最多只能有一个读请求
 	func AsyncRead() MountOption
-	
+
 	// 使用内核buffer write，然后再发给Fuse Server
 	// 否则，使用write through
 	func WritebackCache() MountOption
-	
+
 	// 允许在非空Dir上挂载
 	func AllowNonEmptyMount() MountOption
-	
+
 	// 访问权限。注意安全
 	func AllowOther() MountOption
 	func AllowRoot() MountOption
-	
+
 	// 允许在这个文件系统中 创建字符和块设备文件
 	func AllowDev() MountOption
-	
+
 	// 允许设置user id和group id
 	func AllowSUID() MountOption
-	
+
 	// 下面几个仅Mac使用，其他OS忽略
 	func LocalVolume() MountOption
 	func VolumeName(name String) MountOption
@@ -182,43 +192,47 @@ MountOption函数：
 	func ExclCreate() MountOption
 	func DaemonTimeout(name string) MountOption
 	func OSXFUSELocations(paths ...OSXFUSEPaths) MountOption
+```
 
 2，Conn：表示在挂载Fuse fs上的连接
 
 公共属性：
 
+```go
 	type Conn struct {
 		// Ready chan 在挂载成功或失败后关闭
 		Ready <-chan struct {}
-		
+
 		MountError error
-		
 	}
+```
 
 公共方法：
 
+```go
 	func (c *Conn) Close() error
-	
+
 	func (c *Conn) fd() int
-	
+
 	func (c *Conn) Protocol() Protocol
-	
+
 	// ReadRequest从内核读取消息，负责构造并返回Fuse Request。
 	// Caller必须尽快调用Request.Respond或者Request.RespondError,
 	// 之后Caller不能再持有这个Request。
 	func (c *Conn) ReadRequest() (Request, error)
-	
+
 	// 使一个inode的内核cache无效，包括attributes和数据。
 	// offset 0, size -1 所有数据
 	// offset 0, size 0 仅atrributes
 	// 如果cache没有命中，返回ErrNotCached
 	func (c *Conn) InvalidateNode(nodeID NodeID, off int64, size int64) error
-	
+
 	// 使一个dentry的内核cache无效。
 	// 传入父目录inode和这个dentry的name
 	// 如果cache没有命中，返回ErrNotCached
 	func (c *Conn) InvalidateEntry(parent NodeID, name string） error
-	
+```
+
 3， Seveve函数：服务一个Fuse连接Conn
 	
 	func Serve(c *fuse.Conn, fs FS) error
@@ -227,11 +241,12 @@ MountOption函数：
 
 FS 操作fs元数据:
 
+```go
 	type FS interface {
 		// 获得文件系统根目录的inode
 		Root() (Node, error)
 	}
-	
+
 	type FSStatfser interface {
 		// 获得文件系统元数据
 		Statfs(ctx context.Context, req *fuse.StatfsRequest,
@@ -243,14 +258,16 @@ FS 操作fs元数据:
 		// Linux用来在umount前，对块设备发起flush
 		Destroy()
 	}
-	
+
 	type FSInodeGenerator interface {
 		// 获得一个ino (go-fuse 将ino称为inode，而inode称为Node)
 		GenerateInode(parentInode uint64, name string) uint64
 	}
+```
 
 Node 操作inode元数据:
 
+```go
 	type Node interface {
 		// 按inode元数据获得Attr
 		Attr(ctx context.Context, attr *fuse.Attr) error
@@ -351,9 +368,11 @@ Node 操作inode元数据:
 	type NodeRemovexattrer interface {
 		Removexattr(ctx context.Context, req *fuse.RemovexattrReuest) error
 	}
-	
+```
+
 Handle 操作文件数据:
 
+```go
 	// Handle是打开文件的接口
 	type Handle interface {
 	}
@@ -387,11 +406,12 @@ Handle 操作文件数据:
 		// 关闭文件
 		Release(ctx context.Context, req *fuse.ReleaseRequest) error
 	}
+```
 
 实现
 --
 
-代码：
+[代码](./bbfs/)
 	
 
 要点：
