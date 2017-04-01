@@ -1,13 +1,15 @@
-#用Go和Fuse实现一个文件系统.md
+##用Go和Fuse实现一个文件系统.md
 
-## 目标：
+
+##目标
 1，用高级语言实现简单的文件系统；
 
-2，查看5fuse对Buffered IO和Direct IO的支持；
+2，查看fuse对Buffered IO和Direct IO的支持；
 
 3, 了解fuse安全和并发竞争；
 
-###fuse原理
+##fuse原理
+
 Fuse通过Fuse服务进程调用文件系统的具体实现。用户进程和Fuse服务进程都通过syscall进入内核，然后在内核wait\_queue上实现同步。
 Fuse Protocal是在/dev/fuse文件上通过read、write实现的通信协议，用于Fuse服务进程跟Fuse内核模块通信。
 
@@ -19,7 +21,7 @@ Fuse Protocal是在/dev/fuse文件上通过read、write实现的通信协议，�
 
 ![fuse_syscall](./fuse_syscall.png)
 
-###第一步：Hello，World
+
 **fuse使用基础：**
 
 1，挂载一个fuse文件系统 == 执行你实现的fuse程序
@@ -67,7 +69,7 @@ fuse\_context -> private\_data  void \*
 
 fuse\_stat = fuse\_main(argc, argv, &bb_oper, bb_data)
 
-**go-fuse使用基础:**
+**bazil.org go-fuse使用基础:**
 
 在Go-fuse中，文件系统操作函数分为Node接口和Handle接口，这些接口对应fuse里的 fuse\_operations。Dir，file对象都需要实现Node和Handle接口。通过mount()建立跟服务进程Server的Conn。FS接口表达文件系统元数据操作接口，fs对象实现FS接口。Go-fuse的Server(conn，fs)对应fuse的fuse\_main()函数。Server将来自Kern的请求req通过Conn发送给fs的具体Dir或File对象，由具体的实现方法通过Conn返回resp。Server再将Resp发个Kern。
 
@@ -382,7 +384,7 @@ Handle 操作文件数据:
 		Release(ctx context.Context, req *fuse.ReleaseRequest) error
 	}
 
-#实现
+##实现
 
 代码：
 	
@@ -393,20 +395,20 @@ Handle 操作文件数据:
 
 	2，想好路径名规则
 
-#问题
+##问题
 
 bazil go-fuse的fd/File存在Bug，经常遇到“bad file descriptor”错误，读写大文件几乎100%遇到。
 
 在linux下的goroutine数量过多，大量goroutine没有正常终止
 
-#安全
+##安全
 访问fuse文件系统的进程 具有挂载者的权限，而不是访问这个fuse文件系统的进程本身的权限。
 
-##情况1：挂载fuse的用户 没有设置allow_other
+**情况1：挂载fuse的用户 没有设置allow_other**
 
 只有挂载fuse文件系统的用户可以访问这个fuse文件系统。此时，没有安全风险。
 
-##情况2：挂载fuse的用户 设置allow_other
+**情况2：挂载fuse的用户 设置allow_other**
 
 任何访问这个fuse文件系统的进程都具有挂载者的权限。
 
@@ -414,13 +416,13 @@ fuse.h规定了几个检查接口，比如chown，程序员负责这些接口。
 
 其中，fuse\_get\_context()返回fuse\_context，包含了进程的uid和gid。
 
-##情况3：挂载fuse的用户是root
+**情况3：挂载fuse的用户是root**
 
 任何访问这个fuse文件系统的进程都具有root权限！！
 
 必须禁止。
 
-#并发访问和竞争
+##并发访问和竞争
 
 1，fuse默认多线程，因此存在并发修改共享数据的可能。
 
@@ -429,7 +431,7 @@ fuse.h规定了几个检查接口，比如chown，程序员负责这些接口。
 3，fuse代码本身确保不会锁住它自己的代码和数据。因此，主要关注用户代码的锁和竞争。
 
 
-## 引用
+##引用
 【1】https://www.cs.nmsu.edu/~pfeiffer/fuse-tutorial/html/index.html
 
 【2】https://www.kernel.org/doc/Documentation/filesystems/fuse.txt
