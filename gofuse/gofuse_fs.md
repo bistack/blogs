@@ -420,12 +420,8 @@ Handle 操作文件数据:
 
 	2，想好路径名规则
 
-问题
---
+	3，Node, Handle分别实现
 
-bazil go-fuse的fd/File存在Bug，经常遇到“bad file descriptor”错误，读写大文件几乎100%遇到。
-
-在linux下的goroutine数量过多，大量goroutine没有正常终止
 
 安全
 --

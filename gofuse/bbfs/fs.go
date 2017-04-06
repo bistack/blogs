@@ -36,12 +36,12 @@ func (fs *BbFs) BbFsFullPath(path string) string {
 	return fpath
 }
 
-// =========== methods those implement fuse interfaces ===
+// =========== methods those implement FS interfaces ===
 
 func (fs *BbFs) Root() (fs.Node, error) {
 	logRev("FS")
 	Log(runtime.Caller(0))
-	root := NewFileObj(fs, "", true)
+	root := NewNode(fs, "", true)
 
 	return root, nil
 }
