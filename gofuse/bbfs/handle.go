@@ -1,8 +1,10 @@
 package main
 
 import (
+	"io"
 	"golang.org/x/net/context"
 	"os"
+	//"log"
 	"runtime"
 
 	"bazil.org/fuse"
@@ -77,28 +79,24 @@ func (handle *BbFsHandle) Read(ctx context.Context, req *fuse.ReadRequest,
 	resp *fuse.ReadResponse) error {
 	logRev(handle.Node.Name, req.String())
 
-	blen := req.Size
-
-	if handle.Node.attr == nil {
-		handle.Node.Attr(ctx, handle.Node.attr)
-	}
-
-	if uint64(blen) + uint64(req.Offset) >= handle.Node.attr.Size {
-		blen = int(handle.Node.attr.Size - uint64(req.Offset))
-	}
-
-	buf := make([]byte, blen)
+	buf := make([]byte, req.Size)
 
 	len, err := handle.ReadAt(buf, req.Offset)
 
-	if err != nil {
+	if err != nil && err != io.EOF {
+		logRev(err.Error())
+		logErr(runtime.Caller(0))
+		return err
+	}
+
+	if err == io.EOF && len == 0 {
 		logRev(err.Error())
 		logErr(runtime.Caller(0))
 		return err
 	}
 
 	resp.Data = buf[:len]
-	return err
+	return nil
 }
 
 func (handle *BbFsHandle) Write(ctx context.Context, req *fuse.WriteRequest,

@@ -15,7 +15,6 @@ type BbFsNode struct {
 	Fs    *BbFs
 	Name  string
 	IsDir bool
-	attr *fuse.Attr
 }
 
 func setTvTime(tv *syscall.Timeval, time time.Time) {
@@ -121,8 +120,6 @@ func (node *BbFsNode) Attr(ctx context.Context, attr *fuse.Attr) error {
 		logErr(runtime.Caller(0))
 		return err
 	}
-
-	node.attr = attr
 
 	if node.Name == "" {
 		attr.Inode = 1
