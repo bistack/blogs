@@ -150,7 +150,7 @@ int main(void)
 void CU_automated_run_tests(void)		// 批量测试，结果输出到xml文件
 
 #include <CUnit/Basic.h>
-CU_ErrorCode CU_basic_run_tests(void)	// 批量测试，结果输出到标准输出
+CU_ErrorCode CU_basic_run_tests(void)		// 批量测试，结果输出到标准输出
 
 #include <CUnit/Console.h>
 void CU_console_run_tests(void)			// 终端交互式测试
@@ -234,7 +234,7 @@ int main(void)
 
 编译+动态链接
 
-```sh
+```
 $ gcc -o maxi -lcunit maxi.c
 
 $ ldd maxi
@@ -266,7 +266,7 @@ Elapsed time =    0.000 seconds
 
 编译+静态链接
 
-```sh
+```
 $ gcc -c maxi.c
 $ gcc -o maxi maxi.o -static -lcunit
 
